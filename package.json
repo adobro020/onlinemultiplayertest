@@ -1,7 +1,7 @@
 {
-  "name": "multiplayer-render-test",
+  "name": "polar-plaza-multiplayer",
   "version": "1.0.0",
-  "description": "A tiny browser multiplayer test app ready for Render Web Services.",
+  "description": "A tiny snowy penguin-style multiplayer hangout ready for Render Web Services.",
   "main": "server.js",
   "type": "module",
   "scripts": {

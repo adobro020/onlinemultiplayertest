@@ -213,7 +213,7 @@ class WebSocketClient {
 
 function handleConnection(socket) {
   const id = crypto.randomUUID();
-  let roomCode = "lobby";
+  let roomCode = null;
   const client = new WebSocketClient(socket);
 
   clients.add(client);
@@ -227,17 +227,20 @@ function handleConnection(socket) {
     }
 
     if (message.type === "join") {
-      roomCode = message.room || "lobby";
-      const { code, players } = getRoom(roomCode);
+      if (roomCode) {
+        removePlayer(roomCode, id);
+      }
+
+      const { code, players } = getRoom(message.room || "town");
       roomCode = code;
 
       const player = {
         id,
         socket: client,
-        name: String(message.name || "Player").slice(0, 18),
+        name: String(message.name || "Penguin").slice(0, 18),
         color: String(message.color || "#4f46e5").slice(0, 16),
-        x: 80 + Math.floor(Math.random() * 320),
-        y: 80 + Math.floor(Math.random() * 220),
+        x: Math.max(45, Math.min(755, Number(message.x) || 160 + Math.floor(Math.random() * 360))),
+        y: Math.max(70, Math.min(430, Number(message.y) || 260 + Math.floor(Math.random() * 120))),
         score: 0
       };
 
@@ -258,17 +261,39 @@ function handleConnection(socket) {
       return;
     }
 
-    if (message.type === "tag") {
+    if (message.type === "tag" || message.type === "snowball") {
       const room = rooms.get(roomCode);
       const player = room?.get(id);
       if (!player) return;
 
       player.score += 1;
       broadcast(roomCode, {
-        type: "event",
-        text: `${player.name} scored a test point`
+        type: "snowball",
+        id: crypto.randomUUID(),
+        playerId: id,
+        name: player.name,
+        color: player.color,
+        x: player.x,
+        y: player.y,
+        targetX: Math.max(12, Math.min(788, Number(message.targetX) || player.x + 80)),
+        targetY: Math.max(12, Math.min(448, Number(message.targetY) || player.y - 40))
       });
       broadcast(roomCode, { type: "state", players: roomSnapshot(roomCode) });
+      return;
+    }
+
+    if (message.type === "emote") {
+      const room = rooms.get(roomCode);
+      const player = room?.get(id);
+      const emote = String(message.emote || "wave").slice(0, 16);
+      if (!player) return;
+
+      broadcast(roomCode, {
+        type: "emote",
+        playerId: id,
+        name: player.name,
+        emote
+      });
       return;
     }
 
@@ -280,7 +305,9 @@ function handleConnection(socket) {
 
       broadcast(roomCode, {
         type: "chat",
+        playerId: id,
         name: player.name,
+        color: player.color,
         text
       });
     }

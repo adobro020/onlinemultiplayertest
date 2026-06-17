@@ -1,6 +1,14 @@
-# Multiplayer Render Test
+# Polar Plaza Multiplayer
 
-A tiny browser multiplayer test app using Node, Express, and WebSockets. It is meant to prove that real-time browser connections work after deploying as a Render Web Service.
+A tiny snowy penguin-style multiplayer hangout using Node and WebSockets. It is meant to prove that real-time browser connections work after deploying as a Render Web Service.
+
+The app includes:
+
+- Penguin avatars drawn with CSS
+- Snowy rooms: Town, Plaza, Dojo, and Cove
+- Private room codes for testing with friends
+- Live movement, chat bubbles, emotes, and snowballs
+- No external app dependencies
 
 ## Run locally
 
@@ -8,7 +16,7 @@ A tiny browser multiplayer test app using Node, Express, and WebSockets. It is m
 npm start
 ```
 
-Open `http://localhost:3000` in two browser tabs, join the same room, and move with WASD or the arrow keys. There are no external app dependencies.
+Open `http://localhost:3000` in two browser tabs, enter the same private room code, and move with WASD, arrow keys, or click/tap.
 
 ## Deploy on Render
 
