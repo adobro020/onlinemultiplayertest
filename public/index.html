@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multiplayer Render Test</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --ink: #172033;
+        --muted: #667085;
+        --line: #d8dee9;
+        --brand: #2563eb;
+        --brand-dark: #1d4ed8;
+        --good: #0f9f6e;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--ink);
+      }
+
+      main {
+        width: min(1120px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 24px 0;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.5rem, 2.8vw, 2.3rem);
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #d92d20;
+      }
+
+      .dot.connected {
+        background: var(--good);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .stage,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+      }
+
+      .stage {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        min-height: 320px;
+        overflow: hidden;
+        touch-action: none;
+      }
+
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(var(--line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--line) 1px, transparent 1px);
+        background-size: 40px 40px;
+        opacity: 0.55;
+      }
+
+      .player {
+        position: absolute;
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        transform: translate(-50%, -50%);
+        border: 3px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
+        transition: left 90ms linear, top 90ms linear;
+      }
+
+      .player.mine {
+        outline: 3px solid rgba(37, 99, 235, 0.35);
+      }
+
+      .name-tag {
+        position: absolute;
+        left: 50%;
+        bottom: 31px;
+        transform: translateX(-50%);
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.94);
+        color: var(--ink);
+        font-size: 0.77rem;
+        white-space: nowrap;
+        border: 1px solid var(--line);
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+
+      label {
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      input,
+      button {
+        font: inherit;
+      }
+
+      input {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 11px;
+        color: var(--ink);
+        background: #fff;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 48px;
+        gap: 8px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: var(--brand);
+        color: white;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: var(--brand-dark);
+      }
+
+      button.secondary {
+        background: #eef2ff;
+        color: var(--brand-dark);
+      }
+
+      .scoreboard {
+        display: grid;
+        gap: 8px;
+        margin: 12px 0;
+      }
+
+      .score {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      .swatch {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border-radius: 3px;
+        margin-right: 7px;
+        vertical-align: -1px;
+      }
+
+      .log {
+        height: 168px;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcff;
+        font-size: 0.9rem;
+      }
+
+      .log p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .chat-form {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .controls {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      @media (max-width: 860px) {
+        header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .stage {
+          min-height: 260px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Multiplayer Render Test</h1>
+          <p class="subtitle">Join the same room in two tabs or two devices, then move around together.</p>
+        </div>
+        <div class="status" aria-live="polite">
+          <span class="dot" id="connectionDot"></span>
+          <span id="connectionText">Connecting</span>
+        </div>
+      </header>
+
+      <section class="layout">
+        <div class="stage" id="stage" aria-label="Multiplayer play area">
+          <div class="grid"></div>
+        </div>
+
+        <aside class="panel">
+          <form id="joinForm">
+            <div class="field">
+              <label for="name">Player name</label>
+              <input id="name" maxlength="18" autocomplete="nickname" />
+            </div>
+            <div class="field">
+              <label for="room">Room code</label>
+              <div class="row">
+                <input id="room" maxlength="24" />
+                <input id="color" type="color" aria-label="Player color" />
+              </div>
+            </div>
+            <button type="submit">Join room</button>
+            <button class="secondary" id="copyLink" type="button">Copy room link</button>
+          </form>
+
+          <div class="controls">
+            Move with WASD, arrow keys, or click/tap the board. Press Space to score a test point.
+          </div>
+
+          <h2>Players</h2>
+          <div class="scoreboard" id="scoreboard"></div>
+
+          <h2>Room log</h2>
+          <div class="log" id="log"></div>
+          <form class="chat-form" id="chatForm">
+            <input id="chatText" maxlength="120" placeholder="Send a test message" />
+            <button type="submit">Send</button>
+          </form>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      const stage = document.querySelector("#stage");
+      const scoreboard = document.querySelector("#scoreboard");
+      const log = document.querySelector("#log");
+      const connectionDot = document.querySelector("#connectionDot");
+      const connectionText = document.querySelector("#connectionText");
+      const joinForm = document.querySelector("#joinForm");
+      const chatForm = document.querySelector("#chatForm");
+      const nameInput = document.querySelector("#name");
+      const roomInput = document.querySelector("#room");
+      const colorInput = document.querySelector("#color");
+      const copyLink = document.querySelector("#copyLink");
+      const chatText = document.querySelector("#chatText");
+
+      const params = new URLSearchParams(location.search);
+      const colors = ["#2563eb", "#db2777", "#059669", "#f97316", "#7c3aed"];
+      let socket;
+      let playerId = null;
+      let currentRoom = params.get("room") || "lobby";
+      let players = [];
+      let me = {
+        name: `Player ${Math.floor(100 + Math.random() * 900)}`,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      };
+
+      nameInput.value = me.name;
+      roomInput.value = currentRoom;
+      colorInput.value = me.color;
+
+      function connect() {
+        const protocol = location.protocol === "https:" ? "wss" : "ws";
+        socket = new WebSocket(`${protocol}://${location.host}`);
+
+        socket.addEventListener("open", () => {
+          setConnection(true);
+          joinRoom();
+        });
+
+        socket.addEventListener("close", () => {
+          setConnection(false);
+          addLog("Disconnected. Reconnecting...");
+          setTimeout(connect, 900);
+        });
+
+        socket.addEventListener("message", (event) => {
+          const message = JSON.parse(event.data);
+
+          if (message.type === "welcome") {
+            playerId = message.id;
+            currentRoom = message.room;
+            roomInput.value = currentRoom;
+            updateRoomUrl();
+          }
+
+          if (message.type === "state") {
+            players = message.players;
+            renderPlayers();
+            renderScoreboard();
+          }
+
+          if (message.type === "event") {
+            addLog(message.text);
+          }
+
+          if (message.type === "chat") {
+            addLog(`${message.name}: ${message.text}`);
+          }
+        });
+      }
+
+      function setConnection(isConnected) {
+        connectionDot.classList.toggle("connected", isConnected);
+        connectionText.textContent = isConnected ? "Connected" : "Offline";
+      }
+
+      function send(message) {
+        if (socket?.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify(message));
+        }
+      }
+
+      function joinRoom() {
+        me.name = nameInput.value.trim() || "Player";
+        me.color = colorInput.value;
+        currentRoom = roomInput.value.trim() || "lobby";
+        send({ type: "join", name: me.name, color: me.color, room: currentRoom });
+        addLog(`Joined room ${currentRoom}`);
+        updateRoomUrl();
+      }
+
+      function renderPlayers() {
+        const existing = new Set();
+        for (const player of players) {
+          existing.add(player.id);
+          let el = stage.querySelector(`[data-player-id="${player.id}"]`);
+          if (!el) {
+            el = document.createElement("div");
+            el.className = "player";
+            el.dataset.playerId = player.id;
+            el.innerHTML = '<span class="name-tag"></span>';
+            stage.appendChild(el);
+          }
+          el.classList.toggle("mine", player.id === playerId);
+          el.style.left = `${player.x / 8}%`;
+          el.style.top = `${player.y / 4.6}%`;
+          el.style.background = player.color;
+          el.querySelector(".name-tag").textContent = player.name;
+        }
+
+        for (const el of stage.querySelectorAll(".player")) {
+          if (!existing.has(el.dataset.playerId)) {
+            el.remove();
+          }
+        }
+      }
+
+      function renderScoreboard() {
+        scoreboard.innerHTML = "";
+        for (const player of [...players].sort((a, b) => b.score - a.score)) {
+          const row = document.createElement("div");
+          row.className = "score";
+          row.innerHTML = `
+            <span><span class="swatch" style="background:${player.color}"></span>${escapeHtml(player.name)}</span>
+            <strong>${player.score}</strong>
+          `;
+          scoreboard.appendChild(row);
+        }
+      }
+
+      function moveMine(dx, dy) {
+        const player = players.find((item) => item.id === playerId);
+        if (!player) return;
+        send({ type: "move", x: player.x + dx, y: player.y + dy });
+      }
+
+      function moveToPoint(clientX, clientY) {
+        const rect = stage.getBoundingClientRect();
+        const x = ((clientX - rect.left) / rect.width) * 800;
+        const y = ((clientY - rect.top) / rect.height) * 460;
+        send({ type: "move", x, y });
+      }
+
+      function addLog(text) {
+        const p = document.createElement("p");
+        p.textContent = text;
+        log.appendChild(p);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function updateRoomUrl() {
+        const url = new URL(location.href);
+        url.searchParams.set("room", currentRoom);
+        history.replaceState(null, "", url);
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      joinForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        joinRoom();
+      });
+
+      copyLink.addEventListener("click", async () => {
+        updateRoomUrl();
+        await navigator.clipboard.writeText(location.href);
+        addLog("Room link copied");
+      });
+
+      chatForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        send({ type: "chat", text: chatText.value });
+        chatText.value = "";
+      });
+
+      stage.addEventListener("pointerdown", (event) => moveToPoint(event.clientX, event.clientY));
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+        const step = event.shiftKey ? 36 : 18;
+        if (["arrowup", "w"].includes(key)) moveMine(0, -step);
+        if (["arrowdown", "s"].includes(key)) moveMine(0, step);
+        if (["arrowleft", "a"].includes(key)) moveMine(-step, 0);
+        if (["arrowright", "d"].includes(key)) moveMine(step, 0);
+        if (key === " ") {
+          event.preventDefault();
+          send({ type: "tag" });
+        }
+      });
+
+      connect();
+    </script>
+  </body>
+</html>
